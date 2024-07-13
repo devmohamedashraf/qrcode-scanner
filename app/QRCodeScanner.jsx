@@ -66,24 +66,14 @@ const QRCodeScanner = () => {
         },
         { returnDetailedScanResult: true }
       );
-      scannerRef.current
-        .start()
-        .then((result) => {
-          setData(result.data);
-          setStatus({
-            type: "success",
-            message: "QR code scanned successfully!",
-          });
-          setIsLoading(false);
-        })
-        .catch((error) => {
-          console.error("Camera start failed:", error);
-          setStatus({
-            type: "error",
-            message: "Error starting camera. Please try again." + error,
-          });
-          setIsCameraActive(false);
+      scannerRef.current.start().catch((error) => {
+        console.error("Camera start failed:", error);
+        setStatus({
+          type: "error",
+          message: "Error starting camera. Please try again." + error,
         });
+        setIsCameraActive(false);
+      });
     }
 
     return () => {
