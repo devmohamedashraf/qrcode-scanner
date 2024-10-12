@@ -15,26 +15,27 @@ const QRCodeScanner = () => {
   const videoRef = useRef(null);
   const scannerRef = useRef(null);
 
-  const scanImage = (image) => {
+  const scanImage = async (image) => {
     setIsLoading(true);
     setStatus({ type: "", message: "" });
-    QrScanner.scanImage(image, { returnDetailedScanResult: true })
-      .then((result) => {
-        setData(result.data);
-        setStatus({
-          type: "success",
-          message: "QR code scanned successfully!",
-        });
-        setIsLoading(false);
-      })
-      .catch((error) => {
-        console.error("Scan failed:", error);
-        setStatus({
-          type: "error",
-          message: "QR code not detected. Please try again.",
-        });
-        setIsLoading(false);
+    try {
+      const result = await QrScanner.scanImage(image, {
+        returnDetailedScanResult: true,
       });
+      setData(result.data);
+      setStatus({
+        type: "success",
+        message: "QR code scanned successfully!",
+      });
+    } catch (error) {
+      console.error("Scan failed:", error);
+      setStatus({
+        type: "error",
+        message: "QR code not detected. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -70,7 +71,7 @@ const QRCodeScanner = () => {
         console.error("Camera start failed:", error);
         setStatus({
           type: "error",
-          message: "Error starting camera. Please try again." + error,
+          message: `Error starting camera. Please try again. ${error.message}`,
         });
         setIsCameraActive(false);
       });
@@ -91,11 +92,12 @@ const QRCodeScanner = () => {
       setImageUrl(fileUrl);
       setIsCameraActive(false);
       setStatus({ type: "", message: "" });
+      setData("");
     }
   };
 
   const handleCameraToggle = () => {
-    setIsCameraActive(!isCameraActive);
+    setIsCameraActive((prev) => !prev);
     setImageUrl(null);
     setStatus({ type: "", message: "" });
     setData("");
@@ -127,7 +129,7 @@ const QRCodeScanner = () => {
           ref={fileRef}
         />
         <Button onClick={handleCameraToggle}>
-          <Camera className="mr-2 h-4 w-4" />{" "}
+          <Camera className="mr-2 h-4 w-4" />
           {isCameraActive ? "Stop Camera" : "Use Camera"}
         </Button>
       </div>
@@ -139,7 +141,7 @@ const QRCodeScanner = () => {
         />
       )}
       {isCameraActive && (
-        <video ref={videoRef} className="w-128 h-128 object-contain" />
+        <video ref={videoRef} className="w-64 h-64 object-contain" />
       )}
       {isLoading && (
         <div className="flex items-center space-x-2">
