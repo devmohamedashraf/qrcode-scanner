@@ -1,5 +1,5 @@
 import Image from "next/image";
-import QRCodeScanner from "./qr-code-scanner";
+import QRCodeScanner from "./QRCodeScanner";
 
 export default function Home() {
   return (
