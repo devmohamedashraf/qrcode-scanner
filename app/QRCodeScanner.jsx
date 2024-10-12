@@ -4,7 +4,6 @@ import jsQR from "jsqr";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Camera, Loader2, RefreshCw } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const QRCodeScanner = () => {
   const [data, setData] = useState("");
@@ -194,10 +193,10 @@ const QRCodeScanner = () => {
         </div>
       )}
       {status.message && (
-        <Alert variant={status.type === "error" ? "destructive" : "default"}>
-          <AlertTitle>{status.type === "error" ? "Error" : "Success"}</AlertTitle>
-          <AlertDescription>{status.message}</AlertDescription>
-        </Alert>
+        <div variant={status.type === "error" ? "destructive" : "default"}>
+          <div>{status.type === "error" ? "Error" : "Success"}</div>
+          <div>{status.message}</div>
+        </div>
       )}
       {data && (
         <div className="mt-4 p-4 bg-gray-100 rounded w-full">
