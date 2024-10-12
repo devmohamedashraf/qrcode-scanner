@@ -118,7 +118,7 @@ const QRCodeScanner = () => {
   return (
     <div className="flex flex-col items-center justify-center space-y-4 p-4">
       <h2 className="text-2xl font-bold">QR Code Scanner</h2>
-      <div className="flex space-x-2">
+      <div className="flex flex-wrap space-x-2">
         <Input
           type="file"
           onChange={handleFileChange}
@@ -139,7 +139,7 @@ const QRCodeScanner = () => {
         />
       )}
       {isCameraActive && (
-        <video ref={videoRef} className="w-64 h-64 object-contain" />
+        <video ref={videoRef} className="w-128 h-128 object-contain" />
       )}
       {isLoading && (
         <div className="flex items-center space-x-2">
