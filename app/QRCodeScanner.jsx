@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import QrScanner from "qr-scanner";
-import jsQR from "jsqr";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Camera, Loader2, RefreshCw } from "lucide-react";
@@ -20,39 +19,33 @@ const QRCodeScanner = () => {
     setIsLoading(true);
     setStatus({ type: "", message: "" });
     try {
-      // Try QrScanner library first
-      console.log("Attempting to scan with QrScanner...");
       const result = await QrScanner.scanImage(image, {
         returnDetailedScanResult: true,
         qrEngine: QrScanner.WORKER_PATH,
         maxScansPerSecond: 1,
+        calculateScanRegion: (imageSize) => {
+          const scanRegionSize = Math.round(
+            Math.min(imageSize.width, imageSize.height) * 0.8
+          );
+          return {
+            x: Math.round((imageSize.width - scanRegionSize) / 2),
+            y: Math.round((imageSize.height - scanRegionSize) / 2),
+            width: scanRegionSize,
+            height: scanRegionSize,
+          };
+        },
       });
       setData(result.data);
       setStatus({
         type: "success",
-        message: "QR code scanned successfully with QrScanner!",
+        message: "QR code scanned successfully!",
       });
-    } catch (qrScannerError) {
-      console.error("QrScanner failed:", qrScannerError);
-      // If QrScanner fails, try jsQR
-      console.log("Attempting to scan with jsQR...");
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      canvas.width = image.width;
-      canvas.height = image.height;
-      ctx.drawImage(image, 0, 0, image.width, image.height);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const code = jsQR(imageData.data, imageData.width, imageData.height);
-      if (code) {
-        setData(code.data);
-        setStatus({
-          type: "success",
-          message: "QR code scanned successfully with jsQR!",
-        });
-      } else {
-        console.error("jsQR failed to detect a QR code");
-        throw new Error("Both QR code scanning methods failed");
-      }
+    } catch (error) {
+      console.error("Scan failed:", error);
+      setStatus({
+        type: "error",
+        message: "QR code not detected. Please try again with a clearer image.",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -61,14 +54,9 @@ const QRCodeScanner = () => {
   useEffect(() => {
     if (imageUrl) {
       const image = new Image();
-      image.crossOrigin = "Anonymous";
       image.src = imageUrl;
-      image.onload = () => {
-        console.log("Image loaded successfully. Dimensions:", image.width, "x", image.height);
-        scanImage(image);
-      };
-      image.onerror = (error) => {
-        console.error("Error loading image:", error);
+      image.onload = () => scanImage(image);
+      image.onerror = () => {
         setStatus({
           type: "error",
           message: "Error loading image. Please try a different file.",
@@ -87,7 +75,7 @@ const QRCodeScanner = () => {
           setIsCameraActive(false);
           setStatus({
             type: "success",
-            message: "QR code scanned successfully from camera!",
+            message: "QR code scanned successfully!",
           });
         },
         { returnDetailedScanResult: true }
@@ -96,7 +84,7 @@ const QRCodeScanner = () => {
         console.error("Camera start failed:", error);
         setStatus({
           type: "error",
-          message: `Error starting camera. Please try again or use file upload. ${error.message}`,
+          message: "Error starting camera. Please try again." + error,
         });
         setIsCameraActive(false);
       });
@@ -113,17 +101,15 @@ const QRCodeScanner = () => {
     const selectedFile = event.target.files[0];
 
     if (selectedFile) {
-      console.log("File selected:", selectedFile.name, "Size:", selectedFile.size, "bytes");
       const fileUrl = URL.createObjectURL(selectedFile);
       setImageUrl(fileUrl);
       setIsCameraActive(false);
       setStatus({ type: "", message: "" });
-      setData("");
     }
   };
 
   const handleCameraToggle = () => {
-    setIsCameraActive((prev) => !prev);
+    setIsCameraActive(!isCameraActive);
     setImageUrl(null);
     setStatus({ type: "", message: "" });
     setData("");
@@ -132,7 +118,6 @@ const QRCodeScanner = () => {
   const handleTryAgain = () => {
     if (imageUrl) {
       const image = new Image();
-      image.crossOrigin = "Anonymous";
       image.src = imageUrl;
       image.onload = () => scanImage(image);
     } else {
@@ -145,18 +130,18 @@ const QRCodeScanner = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center space-y-4 p-4 max-w-md mx-auto">
+    <div className="flex flex-col items-center justify-center space-y-4 p-4">
       <h2 className="text-2xl font-bold">QR Code Scanner</h2>
-      <div className="flex flex-col space-y-2 w-full">
+      <div className="flex flex-wrap space-x-2">
         <Input
           type="file"
           onChange={handleFileChange}
           accept="image/*"
-          className="w-full"
+          className="w-full max-w-sm"
           ref={fileRef}
         />
         <Button onClick={handleCameraToggle}>
-          <Camera className="mr-2 h-4 w-4" />
+          <Camera className="mr-2 h-4 w-4" />{" "}
           {isCameraActive ? "Stop Camera" : "Use Camera"}
         </Button>
       </div>
@@ -164,11 +149,11 @@ const QRCodeScanner = () => {
         <img
           src={imageUrl}
           alt="Selected QR Code"
-          className="w-64 h-64 object-contain bg-white border border-gray-300"
+          className="w-64 h-64 object-contain bg-white"
         />
       )}
       {isCameraActive && (
-        <video ref={videoRef} className="w-64 h-64 object-contain bg-black" />
+        <video ref={videoRef} className="w-128 h-128 object-contain" />
       )}
       {isLoading && (
         <div className="flex items-center space-x-2">
@@ -177,13 +162,18 @@ const QRCodeScanner = () => {
         </div>
       )}
       {status.message && (
-        <div variant={status.type === "error" ? "destructive" : "default"}>
-          <div>{status.type === "error" ? "Error" : "Success"}</div>
-          <div>{status.message}</div>
+        <div
+          className={`text-center p-2 rounded ${
+            status.type === "error"
+              ? "bg-red-100 text-red-800"
+              : "bg-green-100 text-green-800"
+          }`}
+        >
+          {status.message}
         </div>
       )}
       {data && (
-        <div className="mt-4 p-4 bg-gray-100 rounded w-full">
+        <div className="mt-4 p-4 bg-gray-100 rounded w-full max-w-sm">
           <h3 className="font-bold mb-2">Scanned Result:</h3>
           <p className="break-all">{data}</p>
         </div>
